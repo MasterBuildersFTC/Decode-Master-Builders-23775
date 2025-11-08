@@ -19,6 +19,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     private DcMotor FRDrive;
     private DcMotor BLDrive;
     private DcMotor BRDrive;
+    private Servo ScissorLift;
+
     public void runOpMode() {
         Odometry = hardwareMap.get(GoBildaPinpointDriver.class, "Odometry");
         Odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
@@ -50,6 +52,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         BRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
+        ScissorLift = hardwareMap.get(Servo.class, "ScissorLift");
+
         waitForStart();
         runTime.reset();
 
@@ -64,10 +68,17 @@ public class Field_Centric_TeleOp extends LinearOpMode {
 
         while (opModeIsActive()) {
             Drive_Controls();
+            Revolver_Controls();
             telemetry.update();
         }
     }
     //General OpMode Specific Functions
+    private void Revolver_Controls() {
+        Scissor_Lift();
+    }
+    private void Scissor_Lift() {
+        telemetry.addData("Scissor Lift Angle: ", ScissorLift.getPosition());
+    }
     private void Drive_Controls() {
 
         //Inspired by https://gm0.org/en/latest/docs/software/tutorials/mecanum-drive.html and used microsoft copilot to help refine code
