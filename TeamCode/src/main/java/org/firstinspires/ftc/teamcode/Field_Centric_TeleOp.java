@@ -19,7 +19,12 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     private DcMotor FRDrive;
     private DcMotor BLDrive;
     private DcMotor BRDrive;
+    private DcMotorEx LeftLauncher;
+    private DcMotorEx RightLauncher;
     private Servo ScissorLift;
+    private Servo Revolver;
+
+    double RevolverPosition = 0;
 
     public void runOpMode() {
         Odometry = hardwareMap.get(GoBildaPinpointDriver.class, "Odometry");
@@ -52,7 +57,14 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         BRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
+        LeftLauncher = hardwareMap.get(DcMotorEx.class, "LeftLauncher");
+        RightLauncher = hardwareMap.get(DcMotorEx.class, "RightLauncher");
+        LeftLauncher.setDirection(DcMotorEx.Direction.REVERSE);
+        RightLauncher.setDirection(DcMotorEx.Direction.FORWARD);
+
         ScissorLift = hardwareMap.get(Servo.class, "ScissorLift");
+        Revolver = hardwareMap.get(Servo.class, "Revolver");
+
 
         waitForStart();
         runTime.reset();
@@ -69,15 +81,42 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         while (opModeIsActive()) {
             Drive_Controls();
             Revolver_Controls();
+            Launch_System();
             telemetry.update();
         }
     }
     //General OpMode Specific Functions
+    private void Launch_System() {
+        LeftLauncher.setPower(gamepad1.right_trigger);
+        RightLauncher.setPower(gamepad1.right_trigger);
+
+        telemetry.addData("Launcher Power", gamepad1.right_trigger);
+    }
     private void Revolver_Controls() {
         Scissor_Lift();
+        Revolver();
+    }
+    private void Revolver() {
+        if (gamepad1.left_bumper) {
+            RevolverPosition += (.01);
+        }
+        if (gamepad1.right_bumper) {
+            RevolverPosition -= (.01);
+        }
+        Revolver.setPosition(RevolverPosition);
+        telemetry.addData("Revolver Position: ", RevolverPosition);
     }
     private void Scissor_Lift() {
-        telemetry.addData("Scissor Lift Angle: ", ScissorLift.getPosition());
+
+        if (gamepad1.y) {
+            ScissorLift.setPosition(.32);
+        }
+        if (gamepad1.a) {
+            ScissorLift.setPosition(.7);
+        }
+
+        double ScissorLiftAngle = ScissorLift.getPosition();
+        telemetry.addData("Scissor Lift Angle: ", ScissorLiftAngle);
     }
     private void Drive_Controls() {
 
