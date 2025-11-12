@@ -109,7 +109,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     private void Scissor_Lift() {
 
         if (gamepad1.y) {
-            ScissorLift.setPosition(.32);
+            ScissorLift.setPosition(.4);
         }
         if (gamepad1.a) {
             ScissorLift.setPosition(.7);
@@ -125,7 +125,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         Odometry.update();
         double y = ((gamepad1.left_stick_y) + (gamepad1.right_stick_y * .25));
         double x = -((gamepad1.left_stick_x) + (gamepad1.right_stick_x * .25));
-        double rx = ((gamepad1.left_trigger - gamepad1.right_trigger) + ((gamepad2.left_trigger - gamepad2.right_trigger) * 0.25));
+        double rx =0; // ((gamepad1.left_trigger - gamepad1.right_trigger) + ((gamepad2.left_trigger - gamepad2.right_trigger) * 0.25));
         double botHeading = Odometry.getHeading();
         telemetry.addData("Yaw: ", botHeading);
         double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
