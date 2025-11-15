@@ -21,6 +21,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     private DcMotor BRDrive;
     private DcMotorEx LeftLauncher;
     private DcMotorEx RightLauncher;
+    private DcMotor RightIntake;
     private Servo ScissorLift;
     private Servo Revolver;
 
@@ -40,27 +41,29 @@ public class Field_Centric_TeleOp extends LinearOpMode {
 
         //Making Sure wheels are turning in the right direction
         //port 0
-        FLDrive.setDirection(DcMotor.Direction.FORWARD);
+        FLDrive.setDirection(DcMotor.Direction.REVERSE);
         FLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         FLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        //Note: To drive, the robot requires one motor to be turning in an opposite direction
         //port 1
         BLDrive.setDirection(DcMotor.Direction.FORWARD);
         BLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         //port 2
-        FLDrive.setDirection(DcMotor.Direction.FORWARD);
-        FLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        FLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        FRDrive.setDirection(DcMotor.Direction.FORWARD);
+        FRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        FRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         //port 3
-        BRDrive.setDirection(DcMotor.Direction.FORWARD);
+        BRDrive.setDirection(DcMotor.Direction.REVERSE);
         BRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         LeftLauncher = hardwareMap.get(DcMotorEx.class, "LeftLauncher");
         RightLauncher = hardwareMap.get(DcMotorEx.class, "RightLauncher");
         LeftLauncher.setDirection(DcMotorEx.Direction.REVERSE);
-        RightLauncher.setDirection(DcMotorEx.Direction.FORWARD);
+        RightLauncher.setDirection(DcMotorEx.Direction.REVERSE);
+
+        RightIntake = hardwareMap.get(DcMotor.class, "RightIntake");
+        RightIntake.setDirection(DcMotor.Direction.REVERSE);
 
         ScissorLift = hardwareMap.get(Servo.class, "ScissorLift");
         Revolver = hardwareMap.get(Servo.class, "Revolver");
@@ -82,15 +85,21 @@ public class Field_Centric_TeleOp extends LinearOpMode {
             Drive_Controls();
             Revolver_Controls();
             Launch_System();
+            Intake_System();
             telemetry.update();
         }
     }
     //General OpMode Specific Functions
+    private void Intake_System() {
+        RightIntake.setPower(gamepad1.left_trigger);
+        telemetry.addData("Intake Power", gamepad1.left_trigger);
+    }
     private void Launch_System() {
-        LeftLauncher.setPower(gamepad1.right_trigger);
-        RightLauncher.setPower(gamepad1.right_trigger);
+        LeftLauncher.setPower(gamepad1.right_trigger/2);
+        RightLauncher.setPower(gamepad1.right_trigger/2);
 
-        telemetry.addData("Launcher Power", gamepad1.right_trigger);
+        telemetry.addData("Launcher Power", gamepad1.right_trigger/2);
+        
     }
     private void Revolver_Controls() {
         Scissor_Lift();
@@ -123,9 +132,9 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         //Inspired by https://gm0.org/en/latest/docs/software/tutorials/mecanum-drive.html and used microsoft copilot to help refine code
 
         Odometry.update();
-        double y = ((gamepad1.left_stick_y) + (gamepad1.right_stick_y * .25));
-        double x = -((gamepad1.left_stick_x) + (gamepad1.right_stick_x * .25));
-        double rx =0; // ((gamepad1.left_trigger - gamepad1.right_trigger) + ((gamepad2.left_trigger - gamepad2.right_trigger) * 0.25));
+        double y = -(gamepad1.left_stick_y);
+        double x = (gamepad1.right_stick_x);
+        double rx = (gamepad1.left_stick_x);
         double botHeading = Odometry.getHeading();
         telemetry.addData("Yaw: ", botHeading);
         double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
@@ -140,8 +149,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1);
         double FLDrivePower = (rotY + rotX + rx) / denominator;
         double BLDrivePower = (rotY - rotX + rx) / denominator;
-        double FRDrivePower = (rotY + rotX - rx) / denominator;
-        double BRDrivePower = (rotY - rotX - rx) / denominator;
+        double FRDrivePower = (rotY - rotX - rx) / denominator;
+        double BRDrivePower = (rotY + rotX - rx) / denominator;
 
 
         FLDrive.setPower(FLDrivePower);
