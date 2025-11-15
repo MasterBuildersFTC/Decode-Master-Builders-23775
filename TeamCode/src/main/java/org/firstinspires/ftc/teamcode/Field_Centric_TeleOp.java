@@ -8,6 +8,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.ServoImplEx;
+import com.qualcomm.robotcore.hardware.PwmControl;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 
@@ -23,9 +25,10 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     private DcMotorEx RightLauncher;
     private DcMotor RightIntake;
     private Servo ScissorLift;
-    private Servo Revolver;
+    private ServoImplEx Revolver;
 
     double RevolverPosition = 0;
+    boolean FormerIndex = false;
 
     public void runOpMode() {
         Odometry = hardwareMap.get(GoBildaPinpointDriver.class, "Odometry");
@@ -66,13 +69,15 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         RightIntake.setDirection(DcMotor.Direction.REVERSE);
 
         ScissorLift = hardwareMap.get(Servo.class, "ScissorLift");
-        Revolver = hardwareMap.get(Servo.class, "Revolver");
 
+        Revolver = hardwareMap.get(ServoImplEx.class, "Revolver");
+        Revolver.setPwmRange(new PwmControl.PwmRange(500, 2500));
 
         waitForStart();
         runTime.reset();
 
         //REMOVE WHEN AUTONOMOUS IS IN PLACE
+        /*
         Odometry = hardwareMap.get(GoBildaPinpointDriver.class, "Odometry");
         Odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
         Odometry.setOffsets(-68.0, 0);
@@ -80,7 +85,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         Odometry.resetPosAndIMU();
         Odometry.recalibrateIMU();
         Odometry.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD, GoBildaPinpointDriver.EncoderDirection.FORWARD);
-
+*/
         while (opModeIsActive()) {
             Drive_Controls();
             Revolver_Controls();
@@ -106,11 +111,18 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         Revolver();
     }
     private void Revolver() {
-        if (gamepad1.left_bumper) {
-            RevolverPosition += (.01);
+        if (gamepad1.left_bumper && FormerIndex) {
+            RevolverPosition += (.2);
+            FormerIndex = true;
         }
-        if (gamepad1.right_bumper) {
-            RevolverPosition -= (.01);
+
+        if (gamepad1.right_bumper && FormerIndex) {
+            RevolverPosition -= (.2);
+            FormerIndex = true;
+        }
+
+        if (!gamepad1.right_bumper && !gamepad1.left_bumper);{
+            FormerIndex = false;
         }
         Revolver.setPosition(RevolverPosition);
         telemetry.addData("Revolver Position: ", RevolverPosition);
@@ -130,11 +142,15 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     private void Drive_Controls() {
 
         //Inspired by https://gm0.org/en/latest/docs/software/tutorials/mecanum-drive.html and used microsoft copilot to help refine code
+        if (gamepad1.back) {
+            Odometry.resetPosAndIMU();
+            Odometry.recalibrateIMU();
+        }
 
         Odometry.update();
         double y = -(gamepad1.left_stick_y);
-        double x = (gamepad1.right_stick_x);
-        double rx = (gamepad1.left_stick_x);
+        double x = (gamepad1.left_stick_x);
+        double rx = (gamepad1.right_stick_x);
         double botHeading = Odometry.getHeading();
         telemetry.addData("Yaw: ", botHeading);
         double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
@@ -151,13 +167,12 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         double BLDrivePower = (rotY - rotX + rx) / denominator;
         double FRDrivePower = (rotY - rotX - rx) / denominator;
         double BRDrivePower = (rotY + rotX - rx) / denominator;
-
-
+/*
         FLDrive.setPower(FLDrivePower);
         BLDrive.setPower(BLDrivePower);
         FRDrive.setPower(FRDrivePower);
         BRDrive.setPower(BRDrivePower);
-
+*/
         telemetry.addData("FLDrive ", FLDrivePower);
         telemetry.addData("BLDrive ", BLDrivePower);
         telemetry.addData("FRDrive ", FRDrivePower);
