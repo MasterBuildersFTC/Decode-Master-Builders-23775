@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -25,7 +26,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     private DcMotorEx RightLauncher;
     private DcMotor RightIntake;
     private Servo ScissorLift;
-    private ServoImplEx Revolver;
+    private CRServo Revolver;
 
     double RevolverPosition = 0;
     boolean FormerIndex = false;
@@ -70,8 +71,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
 
         ScissorLift = hardwareMap.get(Servo.class, "ScissorLift");
 
-        Revolver = hardwareMap.get(ServoImplEx.class, "Revolver");
-        Revolver.setPwmRange(new PwmControl.PwmRange(500, 2500));
+        Revolver = hardwareMap.get(CRServo.class, "Revolver");
+        //Revolver.setPwmRange(new PwmControl.PwmRange(500, 2500));
 
         waitForStart();
         runTime.reset();
@@ -111,7 +112,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         Revolver();
     }
     private void Revolver() {
-        if (gamepad1.left_bumper && FormerIndex) {
+        /*if (gamepad1.left_bumper && FormerIndex) {
             RevolverPosition += (.2);
             FormerIndex = true;
         }
@@ -123,8 +124,15 @@ public class Field_Centric_TeleOp extends LinearOpMode {
 
         if (!gamepad1.right_bumper && !gamepad1.left_bumper);{
             FormerIndex = false;
+        }*/
+        Revolver.setPower(0);
+        if (gamepad1.left_bumper) {
+            Revolver.setPower(1);
         }
-        Revolver.setPosition(RevolverPosition);
+        if (gamepad1.right_bumper) {
+            Revolver.setPower(-1);
+        }
+
         telemetry.addData("Revolver Position: ", RevolverPosition);
     }
     private void Scissor_Lift() {
@@ -150,9 +158,22 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         Odometry.update();
         double y = -(gamepad1.left_stick_y);
         double x = (gamepad1.left_stick_x);
-        double rx = (gamepad1.right_stick_x);
+
+
+        double TargetDirection = Math.atan(gamepad1.right_stick_y/gamepad1.right_stick_x);
+
         double botHeading = Odometry.getHeading();
         telemetry.addData("Yaw: ", botHeading);
+
+        int HeadingRotationCount = (int) (botHeading/(2*Math.PI));
+        telemetry.addData("Heading Rotation Count: ", HeadingRotationCount);
+
+        double HeadingDifference = TargetDirection - (botHeading - (2*Math.PI*HeadingRotationCount));
+        telemetry.addData("Heading Difference: ", HeadingDifference);
+
+        double rx = HeadingDifference;
+        telemetry.addData("rx: ", rx);
+
         double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
         double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
 
