@@ -30,6 +30,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
 
     double RevolverPosition = 0;
     boolean FormerIndex = false;
+    double targetHeading = 0.0; // For heading lock
 
     public void runOpMode() {
         Odometry = hardwareMap.get(GoBildaPinpointDriver.class, "Odometry");
@@ -160,18 +161,20 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         double x = (gamepad1.left_stick_x);
 
 
-        double TargetDirection = Math.atan(gamepad1.right_stick_y/gamepad1.right_stick_x);
-
         double botHeading = Odometry.getHeading();
         telemetry.addData("Yaw: ", botHeading);
 
-        int HeadingRotationCount = (int) (botHeading/(2*Math.PI));
-        telemetry.addData("Heading Rotation Count: ", HeadingRotationCount);
+        double rx = gamepad1.right_stick_x;
+        double deadband = 0.1;
 
-        double HeadingDifference = TargetDirection - (botHeading - (2*Math.PI*HeadingRotationCount));
-        telemetry.addData("Heading Difference: ", HeadingDifference);
+        if (rx != 0) {
+            targetHeading = botHeading;
+        }
 
-        double rx = HeadingDifference;
+        if (rx ==0) {
+            rx = targetHeading - botHeading;
+        }
+         
         telemetry.addData("rx: ", rx);
 
         double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
@@ -184,16 +187,16 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         // but only if at least one is out of the range [-1, 1]
 
         double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1);
-        double FLDrivePower = (rotY + rotX + rx) / denominator;
-        double BLDrivePower = (rotY - rotX + rx) / denominator;
-        double FRDrivePower = (rotY - rotX - rx) / denominator;
-        double BRDrivePower = (rotY + rotX - rx) / denominator;
-/*
+        double FLDrivePower = (rotY - rotX + rx) / denominator;
+        double BLDrivePower = (rotY - rotX - rx) / denominator;
+        double FRDrivePower = (rotY + rotX - rx) / denominator;
+        double BRDrivePower = (rotY + rotX + rx) / denominator;
+
         FLDrive.setPower(FLDrivePower);
         BLDrive.setPower(BLDrivePower);
         FRDrive.setPower(FRDrivePower);
         BRDrive.setPower(BRDrivePower);
-*/
+
         telemetry.addData("FLDrive ", FLDrivePower);
         telemetry.addData("BLDrive ", BLDrivePower);
         telemetry.addData("FRDrive ", FRDrivePower);
