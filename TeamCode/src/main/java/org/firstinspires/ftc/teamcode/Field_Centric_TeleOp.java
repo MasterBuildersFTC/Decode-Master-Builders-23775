@@ -102,8 +102,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         telemetry.addData("Intake Power", gamepad1.left_trigger);
     }
     private void Launch_System() {
-        LeftLauncher.setPower(gamepad1.right_trigger/2);
-        RightLauncher.setPower(gamepad1.right_trigger/2);
+        LeftLauncher.setPower(gamepad1.right_trigger);
+        RightLauncher.setPower(gamepad1.right_trigger);
 
         telemetry.addData("Launcher Power", gamepad1.right_trigger/2);
         
