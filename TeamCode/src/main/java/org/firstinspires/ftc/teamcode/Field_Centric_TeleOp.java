@@ -31,7 +31,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     double RevolverPosition = 0;
     boolean FormerIndex = false;
     double targetHeading = 0.0; // For heading lock
-
+    int RetractionTime = 0;
     public void runOpMode() {
         Odometry = hardwareMap.get(GoBildaPinpointDriver.class, "Odometry");
         Odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
@@ -64,6 +64,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
 
         LeftLauncher = hardwareMap.get(DcMotorEx.class, "LeftLauncher");
         RightLauncher = hardwareMap.get(DcMotorEx.class, "RightLauncher");
+        //LeftLauncher.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        //RightLauncher.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         LeftLauncher.setDirection(DcMotorEx.Direction.REVERSE);
         RightLauncher.setDirection(DcMotorEx.Direction.REVERSE);
 
@@ -102,10 +104,10 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         telemetry.addData("Intake Power", gamepad1.left_trigger);
     }
     private void Launch_System() {
-        LeftLauncher.setPower(gamepad1.right_trigger);
-        RightLauncher.setPower(gamepad1.right_trigger);
+        LeftLauncher.setPower(4.7*(gamepad1.right_trigger+gamepad2.right_trigger)/10);
+        RightLauncher.setPower(4.7*(gamepad1.right_trigger+gamepad2.right_trigger)/10);
 
-        telemetry.addData("Launcher Power", gamepad1.right_trigger/2);
+        telemetry.addData("Launcher Power", (4.7*(gamepad1.right_trigger+gamepad2.right_trigger)/10));
         
     }
     private void Revolver_Controls() {
@@ -137,11 +139,13 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         telemetry.addData("Revolver Position: ", RevolverPosition);
     }
     private void Scissor_Lift() {
+        double ElapsedTime = runTime.seconds();
 
         if (gamepad1.y) {
             ScissorLift.setPosition(.4);
+            RetractionTime = (int) (ElapsedTime+1);
         }
-        if (gamepad1.a) {
+        if (ElapsedTime > RetractionTime) {
             ScissorLift.setPosition(.7);
         }
 
@@ -164,8 +168,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         double botHeading = Odometry.getHeading();
         telemetry.addData("Yaw: ", botHeading);
 
-        double rx = gamepad1.right_stick_x;
-        double deadband = 0.1;
+        double rx = -gamepad1.right_stick_x;
 
         if (rx != 0) {
             targetHeading = botHeading;
