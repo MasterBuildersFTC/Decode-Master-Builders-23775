@@ -104,8 +104,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         telemetry.addData("Intake Power", gamepad1.left_trigger);
     }
     private void Launch_System() {
-        LeftLauncher.setPower(4.7*(gamepad1.right_trigger+gamepad2.right_trigger)/10);
-        RightLauncher.setPower(4.7*(gamepad1.right_trigger+gamepad2.right_trigger)/10);
+        LeftLauncher.setPower(4.2*(gamepad1.right_trigger+gamepad2.right_trigger)/10);
+        RightLauncher.setPower(4.2*(gamepad1.right_trigger+gamepad2.right_trigger)/10);
 
         telemetry.addData("Launcher Power", (4.7*(gamepad1.right_trigger+gamepad2.right_trigger)/10));
         
@@ -129,10 +129,10 @@ public class Field_Centric_TeleOp extends LinearOpMode {
             FormerIndex = false;
         }*/
         Revolver.setPower(0);
-        if (gamepad1.left_bumper) {
+        if (gamepad1.left_bumper|| gamepad2.left_bumper) {
             Revolver.setPower(1);
         }
-        if (gamepad1.right_bumper) {
+        if (gamepad1.right_bumper || gamepad2.right_bumper) {
             Revolver.setPower(-1);
         }
 
@@ -141,7 +141,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     private void Scissor_Lift() {
         double ElapsedTime = runTime.seconds();
 
-        if (gamepad1.y) {
+        if (gamepad1.y || gamepad2.y) {
             ScissorLift.setPosition(.4);
             RetractionTime = (int) (ElapsedTime+1);
         }
