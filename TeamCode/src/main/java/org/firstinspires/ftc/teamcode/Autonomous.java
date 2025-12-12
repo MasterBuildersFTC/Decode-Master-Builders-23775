@@ -16,6 +16,7 @@ public class Autonomous extends LinearOpMode {
     private DcMotor BRDrive;
     private DcMotor RightIntake;
     GoBildaPinpointDriver Odometry; // Declare OpMode member for the Odometry Computer
+
     public void runOpMode() {
         Odometry = hardwareMap.get(GoBildaPinpointDriver.class, "Odometry");
         Odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
@@ -60,66 +61,46 @@ public class Autonomous extends LinearOpMode {
 
         waitForStart();
 
-        Drive_Controls(-0, 0, 200, 15);
+        Drive_Controls(0, 0, 400, 40, 30);
+        Drive_Controls(0,200,0,30,30);
 
 
-        waitForStart();
-
-        Drive_Controls(-0, 0, 200, 15);
     }
-    private void Drive_Controls(int TargetHeading, int TargetX, int TargetY, int Tolerance) {
-        boolean InXPosition = Math.abs(TargetX - Odometry.getPosX()) <= Tolerance;
-        boolean InYPosition = Math.abs(TargetY - Odometry.getPosY()) <= Tolerance;
-        boolean correctPosition = InXPosition && InYPosition;
+    private void Drive_Controls(int TargetHeading, int TargetX, int TargetY, int Tolerance, int SpeedControl) {
+        PID distanceController = new PID();
+        PID angleController = new PID();  // make sure this follows "Dealing with Angles"
 
-        while (!correctPosition) {
-            //Inspired by https://gm0.org/en/latest/docs/software/tutorials/mecanum-drive.html and used microsoft copilot to help refine code
+        boolean inPostion = false;
 
+        while (!inPostion) {
             Odometry.update();
+            double robotTheta = Odometry.getHeading();
+            double robotX = Odometry.getPosX();
+            double robotY = Odometry.getPosY();
 
-            double y = (TargetY - Odometry.getPosX())/25;
-            double x = (TargetX - Odometry.getPosY())/25;
+            double xError = TargetX - robotX;
+            double yError = TargetY - robotY;
+            double theta = Math.atan2(yError,xError);
+            // 0 is the reference because we want the distance to go to 0
+            double distance = Math.hypot(xError, yError);
+            double left_power = f + t;
+            double right_power = f - t;
+            if (distance < threshold) {
+                f = 0;
+                t = angleController.calculate(targetAngle, robotTheta);
+            } else {
+                f = distanceController.calculate(0, distance);
+                t = angleController.calculate(theta, robotTheta);
+            }
+            // Range.clip is included in the SDK and will clip between two values
+            // angleController.error is a demonstrative attribute that gets the error.
+            f *= Math.cos(Range.clip(angleController.error, -PI/2, PI/2));
 
-            double botHeading = Odometry.getHeading();
-            telemetry.addData("Yaw: ", botHeading);
-
-            double radTargetHeading = Math.toRadians(TargetHeading);
-            double rx = radTargetHeading - botHeading;
-
-            telemetry.addData("rx: ", rx);
-
-            double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
-            double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
-
-            rotX = rotX * 1.1;  // Counteract imperfect strafing
-
-            // Denominator is the largest motor power (absolute value) or 1
-            // This ensures all the powers maintain the same ratio,
-            // but only if at least one is out of the range [-1, 1]
-
-            double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1);
-            double FLDrivePower = (rotY - rotX + rx) / denominator;
-            double BLDrivePower = (rotY - rotX - rx) / denominator;
-            double FRDrivePower = (rotY + rotX - rx) / denominator;
-            double BRDrivePower = (rotY + rotX + rx) / denominator;
-
-            FLDrive.setPower(FLDrivePower);
-            BLDrive.setPower(BLDrivePower);
-            FRDrive.setPower(FRDrivePower);
-            BRDrive.setPower(BRDrivePower);
-
-            telemetry.addData("FLDrive ", FLDrivePower);
-            telemetry.addData("BLDrive ", BLDrivePower);
-            telemetry.addData("FRDrive ", FRDrivePower);
-            telemetry.addData("BRDrive ", BRDrivePower);
-
-            InXPosition = Math.abs(TargetX - Odometry.getPosX()) <= Tolerance;
-            InYPosition = Math.abs(TargetY - Odometry.getPosY()) <= Tolerance;
-
-            correctPosition = InXPosition && InYPosition;
-
-            telemetry.addData("PosX: ", Odometry.getPosX());
-            telemetry.addData("PosY: ", Odometry.getPosY());
+            // set motor power here!
+            FLDrive.setPower(f + t);
+            BLDrive.setPower(f + t);
+            FRDrive.setPower(f - t);
+            BRDrive.setPower(f - t);
 
             telemetry.update();
         }
