@@ -4,12 +4,21 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.arcrobotics.ftclib.controller.PIDController;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Autonomous", preselectTeleOp = "FCDrivingITD")
 public class Autonomous extends LinearOpMode {
+
+    private static final double kPx = 0.08, kIx = 0.0, kDx = 0.01;
+    private static final double kPy = 0.08, kIy = 0.0, kDy = 0.01;
+    private static final double kPt = 0.06, kIt = 0.0, kDt = 0.005;
+
+    private final PIDController xController = new PIDController(kPx, kIx, kDx);
+    private final PIDController yController = new PIDController(kPy, kIy, kDy);
+    private final PIDController thetaController = new PIDController(kPt, kIt, kDt);
     private DcMotor FLDrive;
     private DcMotor FRDrive;
     private DcMotor BLDrive;
@@ -61,49 +70,96 @@ public class Autonomous extends LinearOpMode {
 
         waitForStart();
 
-        Drive_Controls(0, 0, 400, 40, 30);
-        Drive_Controls(0,200,0,30,30);
-
-
+        Drive_Controls(0,0,0,0,0,30000);
     }
-    private void Drive_Controls(int TargetHeading, int TargetX, int TargetY, int Tolerance, int SpeedControl) {
-        PID distanceController = new PID();
-        PID angleController = new PID();  // make sure this follows "Dealing with Angles"
 
-        boolean inPostion = false;
+    private void Drive_Controls(double targetX, double targetY, double targetAngle, double posTolerance, double angleTolerance, long timeoutMillis) {
 
-        while (!inPostion) {
-            Odometry.update();
-            double robotTheta = Odometry.getHeading();
+        long start = System.currentTimeMillis();
+
+        // Set PID setpoints
+        xController.setSetPoint(targetX);
+        yController.setSetPoint(targetY);
+
+        while (opModeIsActive()) {
+            // Timeout safety
+            if (System.currentTimeMillis() - start > timeoutMillis) break;
+
+            // Read odometry (replace with your actual odometry calls!)
             double robotX = Odometry.getPosX();
             double robotY = Odometry.getPosY();
+            double robotTheta = Odometry.getHeading(); // radians
 
-            double xError = TargetX - robotX;
-            double yError = TargetY - robotY;
-            double theta = Math.atan2(yError,xError);
-            // 0 is the reference because we want the distance to go to 0
-            double distance = Math.hypot(xError, yError);
-            double left_power = f + t;
-            double right_power = f - t;
-            if (distance < threshold) {
-                f = 0;
-                t = angleController.calculate(targetAngle, robotTheta);
-            } else {
-                f = distanceController.calculate(0, distance);
-                t = angleController.calculate(theta, robotTheta);
-            }
-            // Range.clip is included in the SDK and will clip between two values
-            // angleController.error is a demonstrative attribute that gets the error.
-            f *= Math.cos(Range.clip(angleController.error, -PI/2, PI/2));
+            telemetry.addData("robotX: ", robotX);
+            telemetry.addData("robotY: ", robotY);
+            telemetry.addData("robotTheta:", robotTheta);
 
-            // set motor power here!
-            FLDrive.setPower(f + t);
-            BLDrive.setPower(f + t);
-            FRDrive.setPower(f - t);
-            BRDrive.setPower(f - t);
+            // PID outputs for X/Y
+            double cmdX_field = xController.calculate(robotX);
+            double cmdY_field = yController.calculate(robotY);
+
+            // Rotate into robot frame
+            double cos = Math.cos(robotTheta);
+            double sin = Math.sin(robotTheta);
+            double cmdX_robot =  cmdX_field * cos + cmdY_field * sin;   // strafe
+            double cmdY_robot = -cmdX_field * sin + cmdY_field * cos;   // forward
+
+            // Heading control
+            double angErr = angleError(targetAngle, robotTheta);
+            double cmdTheta = thetaController.calculate(robotTheta + angErr);
+
+            // Mecanum mixing
+            double FL = cmdY_robot - cmdX_robot + cmdTheta;
+            double BL = cmdY_robot - cmdX_robot - cmdTheta;
+            double FR = cmdY_robot + cmdX_robot - cmdTheta;
+            double BR = cmdY_robot + cmdX_robot + cmdTheta;
+
+            telemetry.addData("Y movement: ", cmdY_robot);
+            telemetry.addData("X movement: ", cmdX_robot);
+            telemetry.addData("Theta movement: ", cmdTheta);
+
+
+            // Normalize powers
+            double max = Math.max(1.0, Math.max(Math.max(Math.abs(FL), Math.abs(BL)),
+                    Math.max(Math.abs(FR), Math.abs(BR))));
+            FL /= max; BL /= max; FR /= max; BR /= max;
+
+            // Apply to motors
+            FLDrive.setPower(FL);
+            BLDrive.setPower(BL);
+            FRDrive.setPower(FR);
+            BRDrive.setPower(BR);
+
+            telemetry.addData("FL", FL);
+            telemetry.addData("BL", BL);
+            telemetry.addData("FR", FR);
+            telemetry.addData("BR", BR);
+
+            // Exit condition
+            double dx = targetX - robotX;
+            double dy = targetY - robotY;
+            double distance = Math.hypot(dx, dy);
 
             telemetry.update();
+
+            if (distance < posTolerance && Math.abs(angErr) < angleTolerance) break;
         }
+
+        // Stop motors
+        FLDrive.setPower(0);
+        BLDrive.setPower(0);
+        FRDrive.setPower(0);
+        BRDrive.setPower(0);
+    }
+
+    /**
+     * Helper: shortest signed angular error in [-π, π].
+     */
+    private double angleError(double target, double current) {
+        double error = target - current;
+        error = (error + Math.PI) % (2.0 * Math.PI);
+        if (error > Math.PI) error -= 2.0 * Math.PI;
+        return error;
     }
 }
 
