@@ -46,11 +46,11 @@ public class Field_Centric_TeleOp extends LinearOpMode {
 
         //Making Sure wheels are turning in the right direction
         //port 0
-        FLDrive.setDirection(DcMotor.Direction.REVERSE);
+        FLDrive.setDirection(DcMotor.Direction.FORWARD);
         FLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         FLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         //port 1
-        BLDrive.setDirection(DcMotor.Direction.FORWARD);
+        BLDrive.setDirection(DcMotor.Direction.REVERSE);
         BLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         //port 2
@@ -161,8 +161,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         }
 
         Odometry.update();
-        double y = -(gamepad1.left_stick_y);
-        double x = (gamepad1.left_stick_x);
+        double y = (gamepad1.left_stick_x);
+        double x = -(gamepad1.left_stick_y);
 
 
         double botHeading = Odometry.getHeading();
@@ -190,9 +190,9 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         // but only if at least one is out of the range [-1, 1]
 
         double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1);
-        double FLDrivePower = (rotY - rotX + rx) / denominator;
-        double BLDrivePower = (rotY - rotX - rx) / denominator;
-        double FRDrivePower = (rotY + rotX - rx) / denominator;
+        double FLDrivePower = (rotY + rotX - rx) / denominator;
+        double BLDrivePower = (rotY - rotX + rx) / denominator;
+        double FRDrivePower = (rotY - rotX - rx) / denominator;
         double BRDrivePower = (rotY + rotX + rx) / denominator;
 
         FLDrive.setPower(FLDrivePower);

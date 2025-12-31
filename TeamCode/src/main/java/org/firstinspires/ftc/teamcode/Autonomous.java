@@ -14,7 +14,7 @@ public class Autonomous extends LinearOpMode {
 
     private static final double kPx = 0.08, kIx = 0.0, kDx = 0.01;
     private static final double kPy = 0.08, kIy = 0.0, kDy = 0.01;
-    private static final double kPt = 0.06, kIt = 0.0, kDt = 0.005;
+    private static final double kPt = 0.08, kIt = 0.0, kDt = 0.005;
 
     private final PIDController xController = new PIDController(kPx, kIx, kDx);
     private final PIDController yController = new PIDController(kPy, kIy, kDy);
@@ -40,11 +40,11 @@ public class Autonomous extends LinearOpMode {
 
         //Making Sure wheels are turning in the right direction
         //port 0
-        FLDrive.setDirection(DcMotor.Direction.REVERSE);
+        FLDrive.setDirection(DcMotor.Direction.FORWARD);
         FLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         FLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         //port 1
-        BLDrive.setDirection(DcMotor.Direction.FORWARD);
+        BLDrive.setDirection(DcMotor.Direction.REVERSE);
         BLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         //port 2
@@ -70,7 +70,8 @@ public class Autonomous extends LinearOpMode {
 
         waitForStart();
 
-        Drive_Controls(0,0,0,0,0,30000);
+        Drive_Controls(0,0,90,20,5,300000);
+
     }
 
     private void Drive_Controls(double targetX, double targetY, double targetAngle, double posTolerance, double angleTolerance, long timeoutMillis) {
@@ -81,17 +82,21 @@ public class Autonomous extends LinearOpMode {
         xController.setSetPoint(targetX);
         yController.setSetPoint(targetY);
 
+        angleTolerance = Math.toRadians(angleTolerance);
+        targetAngle = Math.toRadians(targetAngle);
+
         while (opModeIsActive()) {
+            Odometry.update();
             // Timeout safety
             if (System.currentTimeMillis() - start > timeoutMillis) break;
 
             // Read odometry (replace with your actual odometry calls!)
-            double robotX = Odometry.getPosX();
-            double robotY = Odometry.getPosY();
+            double robotX     = Odometry.getPosX();
+            double robotY     = Odometry.getPosY();
             double robotTheta = Odometry.getHeading(); // radians
 
-            telemetry.addData("robotX: ", robotX);
-            telemetry.addData("robotY: ", robotY);
+            telemetry.addData("robotX: "   , robotX);
+            telemetry.addData("robotY: "   , robotY);
             telemetry.addData("robotTheta:", robotTheta);
 
             // PID outputs for X/Y
@@ -101,21 +106,21 @@ public class Autonomous extends LinearOpMode {
             // Rotate into robot frame
             double cos = Math.cos(robotTheta);
             double sin = Math.sin(robotTheta);
-            double cmdX_robot =  cmdX_field * cos + cmdY_field * sin;   // strafe
-            double cmdY_robot = -cmdX_field * sin + cmdY_field * cos;   // forward
+            double cmdX_robot =  cmdX_field * cos - cmdY_field * sin;   // forward/back
+            double cmdY_robot =  cmdX_field * sin + cmdY_field * cos;   // strafe left/right
 
             // Heading control
             double angErr = angleError(targetAngle, robotTheta);
             double cmdTheta = thetaController.calculate(robotTheta + angErr);
 
             // Mecanum mixing
-            double FL = cmdY_robot - cmdX_robot + cmdTheta;
-            double BL = cmdY_robot - cmdX_robot - cmdTheta;
-            double FR = cmdY_robot + cmdX_robot - cmdTheta;
-            double BR = cmdY_robot + cmdX_robot + cmdTheta;
+            double FL = cmdX_robot + cmdY_robot + cmdTheta;
+            double BL = cmdX_robot - cmdY_robot - cmdTheta;
+            double FR = cmdX_robot - cmdY_robot + cmdTheta;
+            double BR = cmdX_robot + cmdY_robot - cmdTheta;
 
-            telemetry.addData("Y movement: ", cmdY_robot);
-            telemetry.addData("X movement: ", cmdX_robot);
+            telemetry.addData("Y movement: "    , cmdY_robot);
+            telemetry.addData("X movement: "    , cmdX_robot);
             telemetry.addData("Theta movement: ", cmdTheta);
 
 
@@ -130,19 +135,27 @@ public class Autonomous extends LinearOpMode {
             FRDrive.setPower(FR);
             BRDrive.setPower(BR);
 
-            telemetry.addData("FL", FL);
-            telemetry.addData("BL", BL);
-            telemetry.addData("FR", FR);
-            telemetry.addData("BR", BR);
+            telemetry.addData("FL:", FL);
+            telemetry.addData("BL:", BL);
+            telemetry.addData("FR:", FR);
+            telemetry.addData("BR:", BR);
 
             // Exit condition
             double dx = targetX - robotX;
-            double dy = targetY - robotY;
+            double dy = targetY + robotY;
             double distance = Math.hypot(dx, dy);
 
-            telemetry.update();
+            telemetry.addData("X Distance:", dx);
+            telemetry.addData("Y Distance:", dy);
+            telemetry.addData("Target Distance:", distance);
 
-            if (distance < posTolerance && Math.abs(angErr) < angleTolerance) break;
+
+            if (distance < posTolerance && Math.abs(targetAngle-robotTheta) < angleTolerance) break;
+
+            telemetry.addData("In Position:",(distance < posTolerance));
+            telemetry.addData("At Angle:",(Math.abs(angErr) < angleTolerance));
+
+            telemetry.update();
         }
 
         // Stop motors
