@@ -21,11 +21,11 @@ public class Limelight_Test extends LinearOpMode {
 
         while (opModeIsActive()) {
 
-            double distance = ((h2-h1) / Math.tan(22.5+Limelight.getLatestResult().getTy()));
+            //double distance = ((h2-h1) / Math.tan(22.5+Limelight.getLatestResult().getTy()));
             double angleDiffernce = Limelight.getLatestResult().getTx();
 
             telemetry.addData("angle difference:", angleDiffernce);
-            telemetry.addData("Distance from back of goal:", distance);
+            //telemetry.addData("Distance from back of goal:", distance);
             telemetry.update();
         }
     }

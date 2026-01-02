@@ -13,6 +13,7 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.hardware.PwmControl;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 
 @TeleOp(name = "FCDrivingITD", group = "LinearOpMode")
 public class Field_Centric_TeleOp extends LinearOpMode {
@@ -22,17 +23,34 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     private DcMotor FRDrive;
     private DcMotor BLDrive;
     private DcMotor BRDrive;
-    private DcMotorEx LeftLauncher;
-    private DcMotorEx RightLauncher;
-    private DcMotor RightIntake;
-    private Servo ScissorLift;
-    private CRServo Revolver;
+    private DcMotorEx TopOuttake;
+    private DcMotorEx BottomOuttake;
+    private DcMotor FrontIntake;
+    private DcMotor BackIntake;
+    private Servo IndexRamp;
+    private CRServo IndexRevolver;
+    private Limelight3A Limelight;
 
-    double RevolverPosition = 0;
+    double IndexRevolverPosition = 0;
     boolean FormerIndex = false;
     double targetHeading = 0.0; // For heading lock
     int RetractionTime = 0;
+    double OuttakeVelocity=0;
+
+    boolean formerA = false;
+    boolean formerB = false;
+    boolean formerX = false;
+    boolean formerY = false;
+
+
+    @Override
     public void runOpMode() {
+        Limelight = hardwareMap.get(Limelight3A.class, "Limelight");
+
+        Limelight.pipelineSwitch(0);
+
+        Limelight.start();
+
         Odometry = hardwareMap.get(GoBildaPinpointDriver.class, "Odometry");
         Odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
 
@@ -46,7 +64,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
 
         //Making Sure wheels are turning in the right direction
         //port 0
-        FLDrive.setDirection(DcMotor.Direction.FORWARD);
+        FLDrive.setDirection(DcMotor.Direction.REVERSE);
         FLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         FLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         //port 1
@@ -62,20 +80,20 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         BRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        LeftLauncher = hardwareMap.get(DcMotorEx.class, "LeftLauncher");
-        RightLauncher = hardwareMap.get(DcMotorEx.class, "RightLauncher");
-        //LeftLauncher.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        //RightLauncher.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        LeftLauncher.setDirection(DcMotorEx.Direction.REVERSE);
-        RightLauncher.setDirection(DcMotorEx.Direction.REVERSE);
+        TopOuttake = hardwareMap.get(DcMotorEx.class, "TopOuttake");
+        BottomOuttake = hardwareMap.get(DcMotorEx.class, "BottomOuttake");
+        TopOuttake.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        BottomOuttake.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
-        RightIntake = hardwareMap.get(DcMotor.class, "RightIntake");
-        RightIntake.setDirection(DcMotor.Direction.REVERSE);
+        FrontIntake = hardwareMap.get(DcMotor.class, "FrontIntake");
+        BackIntake = hardwareMap.get(DcMotor.class, "BackIntake");
+        FrontIntake.setDirection(DcMotor.Direction.REVERSE);
+        BackIntake.setDirection(DcMotor.Direction.REVERSE);
 
-        ScissorLift = hardwareMap.get(Servo.class, "ScissorLift");
+        IndexRamp = hardwareMap.get(Servo.class, "IndexRamp");
 
-        Revolver = hardwareMap.get(CRServo.class, "Revolver");
-        //Revolver.setPwmRange(new PwmControl.PwmRange(500, 2500));
+        IndexRevolver = hardwareMap.get(CRServo.class, "IndexRevolver");
+        //IndexRevolver.setPwmRange(new PwmControl.PwmRange(500, 2500));
 
         waitForStart();
         runTime.reset();
@@ -92,7 +110,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
 */
         while (opModeIsActive()) {
             Drive_Controls();
-            Revolver_Controls();
+            Index_Controls();
             Launch_System();
             Intake_System();
             telemetry.update();
@@ -100,57 +118,92 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     }
     //General OpMode Specific Functions
     private void Intake_System() {
-        RightIntake.setPower(gamepad1.left_trigger);
-        telemetry.addData("Intake Power", gamepad1.left_trigger);
+        double IntakePower = gamepad1.left_trigger;
+
+        if (gamepad1.left_bumper)
+            IntakePower = .54;
+
+        FrontIntake.setPower(IntakePower);
+        BackIntake.setPower(IntakePower);
+        
+        telemetry.addData("Intake Power", IntakePower);
     }
     private void Launch_System() {
-        LeftLauncher.setPower(4.7*(gamepad1.right_trigger+gamepad2.right_trigger)/10);
-        RightLauncher.setPower(4.7*(gamepad1.right_trigger+gamepad2.right_trigger)/10);
+        double goalDistance = ((129.9-35) / Math.tan(Math.toRadians(22.5+Limelight.getLatestResult().getTy())));
+        double goalAngleDifference = Limelight.getLatestResult().getTx();
 
-        telemetry.addData("Launcher Power", (4.7*(gamepad1.right_trigger+gamepad2.right_trigger)/10));
+        /*
+        if (gamepad1.a && !formerA)
+            OuttakeVelocity -= .1;
+        if (gamepad1.b && !formerB)
+            OuttakeVelocity -= .01;
+        if (gamepad1.x && !formerX)
+            OuttakeVelocity += .01;
+        if (gamepad1.y && !formerY)
+            OuttakeVelocity += .1;
+
+        if (gamepad1.right_bumper) {
+            OuttakeVelocity = 0;
+        }
+
+        formerA = gamepad1.a;
+        formerB = gamepad1.b;
+        formerX = gamepad1.x;
+        formerY = gamepad1.y;
+        */
+
+        OuttakeVelocity = (0.00000275155*goalDistance*goalDistance) - (0.000903248*goalDistance)+0.680476;
+
+        TopOuttake.setPower(OuttakeVelocity);
+        BottomOuttake.setPower(OuttakeVelocity);
+        
+        telemetry.addData("OuttakeVelocity", OuttakeVelocity);
+        telemetry.addData("Distance from back of goal:", goalDistance);
+        telemetry.addData("angle difference:", goalAngleDifference);
+
         
     }
-    private void Revolver_Controls() {
-        Scissor_Lift();
-        Revolver();
+    private void Index_Controls() {
+        Index_Ramp();
+        //IndexRevolver();
     }
-    private void Revolver() {
+    private void IndexRevolver() {
         /*if (gamepad1.left_bumper && FormerIndex) {
-            RevolverPosition += (.2);
+            IndexRevolverPosition += (.2);
             FormerIndex = true;
         }
 
         if (gamepad1.right_bumper && FormerIndex) {
-            RevolverPosition -= (.2);
+            IndexRevolverPosition -= (.2);
             FormerIndex = true;
         }
 
         if (!gamepad1.right_bumper && !gamepad1.left_bumper);{
             FormerIndex = false;
         }*/
-        Revolver.setPower(0);
+        IndexRevolver.setPower(0);
         if (gamepad1.left_bumper) {
-            Revolver.setPower(1);
+            IndexRevolver.setPower(1);
         }
         if (gamepad1.right_bumper) {
-            Revolver.setPower(-1);
+            IndexRevolver.setPower(-1);
         }
 
-        telemetry.addData("Revolver Position: ", RevolverPosition);
+        telemetry.addData("IndexRevolver Position: ", IndexRevolverPosition);
     }
-    private void Scissor_Lift() {
+    private void Index_Ramp() {
         double ElapsedTime = runTime.seconds();
 
         if (gamepad1.y) {
-            ScissorLift.setPosition(.4);
+            IndexRamp.setPosition(.9);
             RetractionTime = (int) (ElapsedTime+1);
         }
         if (ElapsedTime > RetractionTime) {
-            ScissorLift.setPosition(.7);
+            IndexRamp.setPosition(.8);
         }
 
-        double ScissorLiftAngle = ScissorLift.getPosition();
-        telemetry.addData("Scissor Lift Angle: ", ScissorLiftAngle);
+        double IndexRampAngle = IndexRamp.getPosition();
+        telemetry.addData("Scissor Lift Angle: ", IndexRampAngle);
     }
     private void Drive_Controls() {
 
@@ -161,8 +214,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         }
 
         Odometry.update();
-        double y = (gamepad1.left_stick_x);
-        double x = -(gamepad1.left_stick_y);
+        double y = -(gamepad1.left_stick_y);
+        double x = (gamepad1.left_stick_x);
 
 
         double botHeading = Odometry.getHeading();
@@ -191,9 +244,28 @@ public class Field_Centric_TeleOp extends LinearOpMode {
 
         double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1);
         double FLDrivePower = (rotY + rotX - rx) / denominator;
-        double BLDrivePower = (rotY - rotX + rx) / denominator;
-        double FRDrivePower = (rotY - rotX - rx) / denominator;
+        double BLDrivePower = (rotY - rotX - rx) / denominator;
+        double FRDrivePower = (rotY - rotX + rx) / denominator;
         double BRDrivePower = (rotY + rotX + rx) / denominator;
+
+        //FLDrivePower =0;
+        //BLDrivePower =0;
+        //FRDrivePower =0;
+        //BRDrivePower =0;
+//
+        //if (gamepad1.a) {
+        //    FLDrivePower = 1;
+        //}
+        //if (gamepad1.b) {
+        //    BLDrivePower = 1;
+//
+        //}
+        //if (gamepad1.x) {
+        //    FRDrivePower = 1;
+        //}
+        //if (gamepad1.y) {
+        //    BRDrivePower = 1;
+        //}
 
         FLDrive.setPower(FLDrivePower);
         BLDrive.setPower(BLDrivePower);
