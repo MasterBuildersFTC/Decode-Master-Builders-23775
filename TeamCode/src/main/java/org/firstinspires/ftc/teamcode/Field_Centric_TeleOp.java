@@ -152,7 +152,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         formerY = gamepad1.y;
         */
 
-        OuttakeVelocity = (0.00000275155*goalDistance*goalDistance) - (0.000903248*goalDistance)+0.680476;
+
+        OuttakeVelocity = (5.88515*0.000000001) * (goalDistance * goalDistance * goalDistance * goalDistance) - (5.60204*0.00000) * (goalDistance * goalDistance * goalDistance) + (0.000194142) * (goalDistance * goalDistance) - 0.0285661 * goalDistance + 2.09466;
 
         TopOuttake.setPower(OuttakeVelocity);
         BottomOuttake.setPower(OuttakeVelocity);
@@ -165,7 +166,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     }
     private void Index_Controls() {
         Index_Ramp();
-        //IndexRevolver();
+        IndexRevolver();
     }
     private void IndexRevolver() {
         /*if (gamepad1.left_bumper && FormerIndex) {
@@ -181,13 +182,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         if (!gamepad1.right_bumper && !gamepad1.left_bumper);{
             FormerIndex = false;
         }*/
-        IndexRevolver.setPower(0);
-        if (gamepad1.left_bumper) {
-            IndexRevolver.setPower(1);
-        }
-        if (gamepad1.right_bumper) {
-            IndexRevolver.setPower(-1);
-        }
+
+        IndexRevolver.setPower(1);
 
         telemetry.addData("IndexRevolver Position: ", IndexRevolverPosition);
     }
@@ -195,11 +191,11 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         double ElapsedTime = runTime.seconds();
 
         if (gamepad1.y) {
-            IndexRamp.setPosition(.9);
-            RetractionTime = (int) (ElapsedTime+1);
+            IndexRamp.setPosition(.99);
+            RetractionTime = (int) (ElapsedTime+2);
         }
         if (ElapsedTime > RetractionTime) {
-            IndexRamp.setPosition(.8);
+            IndexRamp.setPosition(.87);
         }
 
         double IndexRampAngle = IndexRamp.getPosition();
