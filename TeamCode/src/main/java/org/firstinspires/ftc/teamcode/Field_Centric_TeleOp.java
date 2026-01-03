@@ -132,28 +132,25 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         double goalDistance = ((129.9-35) / Math.tan(Math.toRadians(22.5+Limelight.getLatestResult().getTy())));
         double goalAngleDifference = Limelight.getLatestResult().getTx();
 
-        /*
-        if (gamepad1.a && !formerA)
+        if (gamepad2.a && !formerA)
             OuttakeVelocity -= .1;
-        if (gamepad1.b && !formerB)
+        if (gamepad2.b && !formerB)
             OuttakeVelocity -= .01;
-        if (gamepad1.x && !formerX)
+        if (gamepad2.x && !formerX)
             OuttakeVelocity += .01;
-        if (gamepad1.y && !formerY)
+        if (gamepad2.y && !formerY)
             OuttakeVelocity += .1;
 
-        if (gamepad1.right_bumper) {
+        /*if (gamepad2.right_bumper) {
             OuttakeVelocity = 0;
-        }
+        }*/
 
-        formerA = gamepad1.a;
-        formerB = gamepad1.b;
-        formerX = gamepad1.x;
-        formerY = gamepad1.y;
-        */
+        formerA = gamepad2.a;
+        formerB = gamepad2.b;
+        formerX = gamepad2.x;
+        formerY = gamepad2.y;
 
-
-        OuttakeVelocity = (0.00000275155*goalDistance*goalDistance) - (0.000903248*goalDistance)+0.670476;
+        //OuttakeVelocity = (0.00000275155*goalDistance*goalDistance) - (0.000903248*goalDistance)+0.670476;
 
         TopOuttake.setPower(OuttakeVelocity);
         BottomOuttake.setPower(OuttakeVelocity);
@@ -183,15 +180,15 @@ public class Field_Centric_TeleOp extends LinearOpMode {
             FormerIndex = false;
         }*/
 
-        IndexRevolver.setPower(1);
+        IndexRevolver.setPower(gamepad2.left_trigger - gamepad2.right_trigger);
 
         telemetry.addData("IndexRevolver Position: ", IndexRevolverPosition);
     }
     private void Index_Ramp() {
         double ElapsedTime = runTime.seconds();
 
-        if (gamepad1.y) {
-            IndexRamp.setPosition(.99);
+        if (gamepad2.right_bumper) {
+            IndexRamp.setPosition(1);
             RetractionTime = (int) (ElapsedTime+2);
         }
         if (ElapsedTime > RetractionTime) {
