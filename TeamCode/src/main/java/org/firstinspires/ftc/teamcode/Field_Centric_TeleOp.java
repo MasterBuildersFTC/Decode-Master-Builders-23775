@@ -153,7 +153,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         */
 
 
-        OuttakeVelocity = (5.88515*0.000000001) * (goalDistance * goalDistance * goalDistance * goalDistance) - (5.60204*0.00000) * (goalDistance * goalDistance * goalDistance) + (0.000194142) * (goalDistance * goalDistance) - 0.0285661 * goalDistance + 2.09466;
+        OuttakeVelocity = (0.00000275155*goalDistance*goalDistance) - (0.000903248*goalDistance)+0.670476;
 
         TopOuttake.setPower(OuttakeVelocity);
         BottomOuttake.setPower(OuttakeVelocity);
