@@ -12,9 +12,9 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Autonomous", preselectTeleOp = "FCDrivingITD")
 public class Autonomous extends LinearOpMode {
 
-    private static final double kPx = 0.08, kIx = 0.0, kDx = 0.01;
-    private static final double kPy = 0.08, kIy = 0.0, kDy = 0.01;
-    private static final double kPt = 0.08, kIt = 0.0, kDt = 0.005;
+    private static final double kPx = 0.09, kIx = 0.0, kDx = 0.01;
+    private static final double kPy = 0.05, kIy = -0.05, kDy = 0.02;
+    private static final double kPt = 0.02, kIt = -0.0019, kDt = 0.01;
 
     private final PIDController xController = new PIDController(kPx, kIx, kDx);
     private final PIDController yController = new PIDController(kPy, kIy, kDy);
@@ -23,7 +23,8 @@ public class Autonomous extends LinearOpMode {
     private DcMotor FRDrive;
     private DcMotor BLDrive;
     private DcMotor BRDrive;
-    private DcMotor RightIntake;
+    private DcMotor FrontIntake;
+    private DcMotor BackIntake;
     GoBildaPinpointDriver Odometry; // Declare OpMode member for the Odometry Computer
 
     public void runOpMode() {
@@ -40,24 +41,26 @@ public class Autonomous extends LinearOpMode {
 
         //Making Sure wheels are turning in the right direction
         //port 0
-        FLDrive.setDirection(DcMotor.Direction.FORWARD);
+        FLDrive.setDirection(DcMotor.Direction.REVERSE);
         FLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        FLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        FLDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         //port 1
         BLDrive.setDirection(DcMotor.Direction.REVERSE);
         BLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        BLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        BLDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         //port 2
         FRDrive.setDirection(DcMotor.Direction.FORWARD);
         FRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        FRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        FRDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         //port 3
         BRDrive.setDirection(DcMotor.Direction.REVERSE);
         BRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        BRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        BRDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        RightIntake = hardwareMap.get(DcMotor.class, "RightIntake");
-        RightIntake.setDirection(DcMotor.Direction.REVERSE);
+        FrontIntake = hardwareMap.get(DcMotor.class, "FrontIntake");
+        BackIntake = hardwareMap.get(DcMotor.class, "BackIntake");
+        FrontIntake.setDirection(DcMotor.Direction.REVERSE);
+        BackIntake.setDirection(DcMotor.Direction.REVERSE);
 
         Odometry = hardwareMap.get(GoBildaPinpointDriver.class, "Odometry");
         Odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
@@ -70,7 +73,7 @@ public class Autonomous extends LinearOpMode {
 
         waitForStart();
 
-        Drive_Controls(0,0,90,20,5,300000);
+        Drive_Controls(0,300,0,50,5,300000);
 
     }
 
@@ -114,10 +117,10 @@ public class Autonomous extends LinearOpMode {
             double cmdTheta = thetaController.calculate(robotTheta + angErr);
 
             // Mecanum mixing
-            double FL = cmdX_robot + cmdY_robot + cmdTheta;
-            double BL = cmdX_robot - cmdY_robot - cmdTheta;
-            double FR = cmdX_robot - cmdY_robot + cmdTheta;
-            double BR = cmdX_robot + cmdY_robot - cmdTheta;
+            double FL = cmdX_robot - cmdY_robot + cmdTheta;
+            double BL = cmdX_robot + cmdY_robot - cmdTheta;
+            double FR = cmdX_robot + cmdY_robot + cmdTheta;
+            double BR = cmdX_robot - cmdY_robot - cmdTheta;
 
             telemetry.addData("Y movement: "    , cmdY_robot);
             telemetry.addData("X movement: "    , cmdX_robot);

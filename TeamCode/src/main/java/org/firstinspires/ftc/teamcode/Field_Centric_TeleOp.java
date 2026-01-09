@@ -66,19 +66,19 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         //port 0
         FLDrive.setDirection(DcMotor.Direction.REVERSE);
         FLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        FLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        FLDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         //port 1
         BLDrive.setDirection(DcMotor.Direction.REVERSE);
         BLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        BLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        BLDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         //port 2
         FRDrive.setDirection(DcMotor.Direction.FORWARD);
         FRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        FRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        FRDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         //port 3
         BRDrive.setDirection(DcMotor.Direction.REVERSE);
         BRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        BRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        BRDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         TopOuttake = hardwareMap.get(DcMotorEx.class, "TopOuttake");
         BottomOuttake = hardwareMap.get(DcMotorEx.class, "BottomOuttake");
