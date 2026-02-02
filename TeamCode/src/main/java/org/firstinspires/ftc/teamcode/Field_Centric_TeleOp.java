@@ -11,6 +11,8 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.hardware.PwmControl;
+import com.qualcomm.robotcore.hardware.TouchSensor;
+
 
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
@@ -30,12 +32,14 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     private Servo IndexRamp;
     private CRServo IndexRevolver;
     private Limelight3A Limelight;
+    private TouchSensor HallEffectSwitch;
 
     double IndexRevolverPosition = 0;
     boolean FormerIndex = false;
     double targetHeading = 0.0; // For heading lock
     int RetractionTime = 0;
     double OuttakeVelocity=0;
+    double IndexSpeed;
 
     boolean formerA = false;
     boolean formerB = false;
@@ -54,6 +58,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         Odometry = hardwareMap.get(GoBildaPinpointDriver.class, "Odometry");
         Odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
 
+        HallEffectSwitch = hardwareMap.get(TouchSensor.class, "Hall Effect Switch");
+
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
@@ -66,19 +72,19 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         //port 0
         FLDrive.setDirection(DcMotor.Direction.REVERSE);
         FLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        FLDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        FLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         //port 1
         BLDrive.setDirection(DcMotor.Direction.REVERSE);
         BLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        BLDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        BLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         //port 2
         FRDrive.setDirection(DcMotor.Direction.FORWARD);
         FRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        FRDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        FRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         //port 3
         BRDrive.setDirection(DcMotor.Direction.REVERSE);
         BRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        BRDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        BRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         TopOuttake = hardwareMap.get(DcMotorEx.class, "TopOuttake");
         BottomOuttake = hardwareMap.get(DcMotorEx.class, "BottomOuttake");
@@ -166,21 +172,16 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         IndexRevolver();
     }
     private void IndexRevolver() {
-        /*if (gamepad1.left_bumper && FormerIndex) {
-            IndexRevolverPosition += (.2);
-            FormerIndex = true;
+
+        if (HallEffectSwitch.isPressed()) {
+            IndexSpeed = 0;
         }
 
-        if (gamepad1.right_bumper && FormerIndex) {
-            IndexRevolverPosition -= (.2);
-            FormerIndex = true;
+        if (gamepad2.left_bumper){
+            IndexSpeed = 1;
         }
 
-        if (!gamepad1.right_bumper && !gamepad1.left_bumper);{
-            FormerIndex = false;
-        }*/
-
-        IndexRevolver.setPower(gamepad2.left_trigger - gamepad2.right_trigger);
+        IndexRevolver.setPower(IndexSpeed);
 
         telemetry.addData("IndexRevolver Position: ", IndexRevolverPosition);
     }
@@ -215,6 +216,10 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         telemetry.addData("Yaw: ", botHeading);
 
         double rx = -gamepad1.right_stick_x;
+
+        if (gamepad1.right_bumper) {
+            rx -= Math.toRadians(Limelight.getLatestResult().getTx());
+        }
 
         if (rx != 0) {
             targetHeading = botHeading;
