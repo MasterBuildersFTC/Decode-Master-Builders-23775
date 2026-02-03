@@ -12,8 +12,8 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Autonomous", preselectTeleOp = "FCDrivingITD")
 public class Autonomous extends LinearOpMode {
 
-    private static final double kPx = 0.09, kIx = 0.0, kDx = 0.01;
-    private static final double kPy = 0.05, kIy = -0.005, kDy = 0.02;
+    private static final double kPx = 0.056, kIx = 0.0, kDx = 0.007;
+    private static final double kPy = 0.05, kIy = 0.0, kDy = 0.003;
     private static final double kPt = 0.02, kIt = -0.0019, kDt = 0.01;
 
     private final PIDController xController = new PIDController(kPx, kIx, kDx);
@@ -73,7 +73,7 @@ public class Autonomous extends LinearOpMode {
 
         waitForStart();
 
-        Drive_Controls(200,0,0,50,5,300000);
+        Drive_Controls(0,300,0,50,5,300000);
 
     }
 
@@ -110,7 +110,7 @@ public class Autonomous extends LinearOpMode {
             double cos = Math.cos(robotTheta);
             double sin = Math.sin(robotTheta);
             double cmdX_robot =  (cmdX_field * cos - cmdY_field * sin);   // forward/back
-            double cmdY_robot =  cmdY_field * sin + cmdY_field * cos;   // strafe left/right
+            double cmdY_robot =  cmdX_field * sin + cmdY_field * cos;   // strafe left/right
 
             // Heading control
             double angErr = angleError(targetAngle, robotTheta);
