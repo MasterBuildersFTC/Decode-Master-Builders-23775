@@ -178,7 +178,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         }
 
         if (gamepad2.left_bumper){
-            IndexSpeed = 1;
+            IndexSpeed = .5;
         }
 
         IndexRevolver.setPower(IndexSpeed);
@@ -193,7 +193,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
             RetractionTime = (int) (ElapsedTime+2);
         }
         if (ElapsedTime > RetractionTime) {
-            IndexRamp.setPosition(.87);
+            IndexRamp.setPosition(.8);
         }
 
         double IndexRampAngle = IndexRamp.getPosition();

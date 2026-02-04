@@ -13,7 +13,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 public class Autonomous extends LinearOpMode {
 
     private static final double kPx = 0.056, kIx = 0.0, kDx = 0.007;
-    private static final double kPy = 0.05, kIy = 0.0, kDy = 0.003;
+    private static final double kPy = 0.056, kIy = 0.0, kDy = 0.0059;
     private static final double kPt = 0.02, kIt = -0.0019, kDt = 0.01;
 
     private final PIDController xController = new PIDController(kPx, kIx, kDx);
@@ -74,6 +74,8 @@ public class Autonomous extends LinearOpMode {
         waitForStart();
 
         Drive_Controls(0,300,0,50,5,300000);
+
+        Drive_Controls(300,0,0,50,5,300000);
 
     }
 
@@ -145,7 +147,7 @@ public class Autonomous extends LinearOpMode {
 
             // Exit condition
             double dx = targetX - robotX;
-            double dy = targetY + robotY;
+            double dy = targetY - robotY;
             double distance = Math.hypot(dx, dy);
 
             telemetry.addData("X Distance:", dx);
