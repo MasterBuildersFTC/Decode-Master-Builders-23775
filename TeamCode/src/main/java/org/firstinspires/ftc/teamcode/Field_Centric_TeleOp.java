@@ -189,9 +189,10 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         double ElapsedTime = runTime.seconds();
 
         if (gamepad2.right_bumper) {
-            IndexRamp.setPosition(1);
+            IndexRamp.setPosition(.95);
             RetractionTime = (int) (ElapsedTime+2);
         }
+
         if (ElapsedTime > RetractionTime) {
             IndexRamp.setPosition(.8);
         }
