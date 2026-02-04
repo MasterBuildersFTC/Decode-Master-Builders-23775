@@ -73,9 +73,9 @@ public class Autonomous extends LinearOpMode {
 
         waitForStart();
 
-        Drive_Controls(0,300,0,50,5,300000);
+        Drive_Controls(0,0,90,500000,5,300000);
 
-        Drive_Controls(300,0,0,50,5,300000);
+        //Drive_Controls(300,0,0,50,5,300000);
 
     }
 
@@ -115,13 +115,15 @@ public class Autonomous extends LinearOpMode {
             double cmdY_robot =  cmdX_field * sin + cmdY_field * cos;   // strafe left/right
 
             // Heading control
-            double angErr = angleError(targetAngle, robotTheta);
-            double cmdTheta = thetaController.calculate(robotTheta + angErr);
+            double angErr = targetAngle - robotTheta;
+            angErr = Math.atan2(Math.sin(angErr), Math.cos(angErr));
+
+            double cmdTheta = thetaController.calculate(robotTheta);
 
             // Mecanum mixing
             double FL = cmdX_robot - cmdY_robot + cmdTheta;
-            double BL = cmdX_robot + cmdY_robot - cmdTheta;
-            double FR = cmdX_robot + cmdY_robot + cmdTheta;
+            double BL = cmdX_robot + cmdY_robot + cmdTheta;
+            double FR = cmdX_robot + cmdY_robot - cmdTheta;
             double BR = cmdX_robot - cmdY_robot - cmdTheta;
 
             telemetry.addData("Y movement: "    , cmdY_robot);
@@ -168,16 +170,6 @@ public class Autonomous extends LinearOpMode {
         BLDrive.setPower(0);
         FRDrive.setPower(0);
         BRDrive.setPower(0);
-    }
-
-    /**
-     * Helper: shortest signed angular error in [-π, π].
-     */
-    private double angleError(double target, double current) {
-        double error = target - current;
-        error = (error + Math.PI) % (2.0 * Math.PI);
-        if (error > Math.PI) error -= 2.0 * Math.PI;
-        return error;
     }
 }
 
