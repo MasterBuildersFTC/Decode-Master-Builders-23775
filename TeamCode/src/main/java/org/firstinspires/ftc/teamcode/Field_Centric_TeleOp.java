@@ -173,13 +173,10 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     }
     private void IndexRevolver() {
 
-        if (HallEffectSwitch.isPressed()) {
-            IndexSpeed = 0;
-        }
-
-        if (gamepad2.left_bumper){
-            IndexSpeed = .5;
-        }
+        IndexSpeed = 0;
+       if (gamepad2.left_bumper) {
+           IndexSpeed = .7;
+       }
 
         IndexRevolver.setPower(IndexSpeed);
 
@@ -188,14 +185,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     private void Index_Ramp() {
         double ElapsedTime = runTime.seconds();
 
-        if (gamepad2.right_bumper) {
-            IndexRamp.setPosition(.95);
-            RetractionTime = (int) (ElapsedTime+2);
-        }
-
-        if (ElapsedTime > RetractionTime) {
-            IndexRamp.setPosition(.8);
-        }
+        double Indexpositition = (gamepad2.right_trigger/5)+.8;
+        IndexRamp.setPosition(Indexpositition);
 
         double IndexRampAngle = IndexRamp.getPosition();
         telemetry.addData("Scissor Lift Angle: ", IndexRampAngle);
@@ -229,7 +220,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         if (rx ==0) {
             rx = targetHeading - botHeading;
         }
-         
+
         telemetry.addData("rx: ", rx);
 
         double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);

@@ -73,103 +73,53 @@ public class Autonomous extends LinearOpMode {
 
         waitForStart();
 
-        Drive_Controls(0,0,90,500000,5,300000);
-
-        //Drive_Controls(300,0,0,50,5,300000);
-
+        Drive_Controls(300,300,0,50,5,300000);
     }
 
     private void Drive_Controls(double targetX, double targetY, double targetAngle, double posTolerance, double angleTolerance, long timeoutMillis) {
 
         long start = System.currentTimeMillis();
 
-        // Set PID setpoints
-        xController.setSetPoint(targetX);
-        yController.setSetPoint(targetY);
-
         angleTolerance = Math.toRadians(angleTolerance);
         targetAngle = Math.toRadians(targetAngle);
 
         while (opModeIsActive()) {
+            telemetry.update();
             Odometry.update();
             // Timeout safety
             if (System.currentTimeMillis() - start > timeoutMillis) break;
 
             // Read odometry (replace with your actual odometry calls!)
-            double robotX     = Odometry.getPosX();
-            double robotY     = Odometry.getPosY();
+            double robotX = Odometry.getPosX();
+            double robotY = Odometry.getPosY();
             double robotTheta = Odometry.getHeading(); // radians
 
-            telemetry.addData("robotX: "   , robotX);
-            telemetry.addData("robotY: "   , robotY);
+            telemetry.addData("robotX: ", robotX);
+            telemetry.addData("robotY: ", robotY);
             telemetry.addData("robotTheta:", robotTheta);
 
-            // PID outputs for X/Y
-            double cmdX_field = xController.calculate(robotX);
-            double cmdY_field = yController.calculate(robotY);
+            double xDistance = targetX - robotX;
+            double yDistance = targetY - robotY;
+            double thetaDistance = Math.toRadians(targetAngle) - robotTheta;
 
-            // Rotate into robot frame
-            double cos = Math.cos(robotTheta);
-            double sin = Math.sin(robotTheta);
-            double cmdX_robot =  (cmdX_field * cos - cmdY_field * sin);   // forward/back
-            double cmdY_robot =  cmdX_field * sin + cmdY_field * cos;   // strafe left/right
+            telemetry.addData("x Distance", xDistance);
+            telemetry.addData("y Distance", yDistance);
 
-            // Heading control
-            double angErr = targetAngle - robotTheta;
-            angErr = Math.atan2(Math.sin(angErr), Math.cos(angErr));
+            double RobotDistance = Math.hypot(xDistance, yDistance);
 
-            double cmdTheta = thetaController.calculate(robotTheta);
+            double Maximum = 1;//(1-Math.exp(.01*RobotDistance));
 
-            // Mecanum mixing
-            double FL = cmdX_robot - cmdY_robot + cmdTheta;
-            double BL = cmdX_robot + cmdY_robot + cmdTheta;
-            double FR = cmdX_robot + cmdY_robot - cmdTheta;
-            double BR = cmdX_robot - cmdY_robot - cmdTheta;
+            double powerScaling = Maximum / RobotDistance;
 
-            telemetry.addData("Y movement: "    , cmdY_robot);
-            telemetry.addData("X movement: "    , cmdX_robot);
-            telemetry.addData("Theta movement: ", cmdTheta);
+            telemetry.addData("Scaling", powerScaling);
 
+            double xPower = xDistance * powerScaling;
+            double yPower = yDistance * powerScaling;
 
-            // Normalize powers
-            double max = Math.max(1.0, Math.max(Math.max(Math.abs(FL), Math.abs(BL)),
-                    Math.max(Math.abs(FR), Math.abs(BR))));
-            FL /= max; BL /= max; FR /= max; BR /= max;
+            telemetry.addData ("x Power", xPower);
+            telemetry.addData ("y Power", yPower);
 
-            // Apply to motors
-            FLDrive.setPower(FL);
-            BLDrive.setPower(BL);
-            FRDrive.setPower(FR);
-            BRDrive.setPower(BR);
-
-            telemetry.addData("FL:", FL);
-            telemetry.addData("BL:", BL);
-            telemetry.addData("FR:", FR);
-            telemetry.addData("BR:", BR);
-
-            // Exit condition
-            double dx = targetX - robotX;
-            double dy = targetY - robotY;
-            double distance = Math.hypot(dx, dy);
-
-            telemetry.addData("X Distance:", dx);
-            telemetry.addData("Y Distance:", dy);
-            telemetry.addData("Target Distance:", distance);
-
-
-            if (distance < posTolerance && Math.abs(targetAngle-robotTheta) < angleTolerance) break;
-
-            telemetry.addData("In Position:",(distance < posTolerance));
-            telemetry.addData("At Angle:",(Math.abs(angErr) < angleTolerance));
-
-            telemetry.update();
         }
-
-        // Stop motors
-        FLDrive.setPower(0);
-        BLDrive.setPower(0);
-        FRDrive.setPower(0);
-        BRDrive.setPower(0);
     }
 }
 
