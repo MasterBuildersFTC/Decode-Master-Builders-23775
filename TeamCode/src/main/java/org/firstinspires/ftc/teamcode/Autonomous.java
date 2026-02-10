@@ -23,8 +23,8 @@ public class Autonomous extends LinearOpMode {
     private DcMotor FRDrive;
     private DcMotor BLDrive;
     private DcMotor BRDrive;
-    private DcMotor FrontIntake;
-    private DcMotor BackIntake;
+    private DcMotor Intake;
+    private DcMotor LiftSystem;
     GoBildaPinpointDriver Odometry; // Declare OpMode member for the Odometry Computer
 
     public void runOpMode() {
@@ -57,10 +57,10 @@ public class Autonomous extends LinearOpMode {
         BRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BRDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        FrontIntake = hardwareMap.get(DcMotor.class, "FrontIntake");
-        BackIntake = hardwareMap.get(DcMotor.class, "BackIntake");
-        FrontIntake.setDirection(DcMotor.Direction.REVERSE);
-        BackIntake.setDirection(DcMotor.Direction.REVERSE);
+        Intake = hardwareMap.get(DcMotor.class, "Intake");
+        LiftSystem = hardwareMap.get(DcMotor.class, "LiftSystem");
+        Intake.setDirection(DcMotor.Direction.REVERSE);
+        LiftSystem.setDirection(DcMotor.Direction.REVERSE);
 
         Odometry = hardwareMap.get(GoBildaPinpointDriver.class, "Odometry");
         Odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
@@ -73,7 +73,7 @@ public class Autonomous extends LinearOpMode {
 
         waitForStart();
 
-        Drive_Controls(300,300,0,50,5,300000);
+        Drive_Controls(0,300,0,75,5,300000);
     }
 
     private void Drive_Controls(double targetX, double targetY, double targetAngle, double posTolerance, double angleTolerance, long timeoutMillis) {
@@ -107,18 +107,42 @@ public class Autonomous extends LinearOpMode {
 
             double RobotDistance = Math.hypot(xDistance, yDistance);
 
-            double Maximum = 1;//(1-Math.exp(.01*RobotDistance));
+            double Maximum = (1-Math.exp(-.01*RobotDistance));
+
+            telemetry.addData("Maximum", Maximum);
 
             double powerScaling = Maximum / RobotDistance;
 
             telemetry.addData("Scaling", powerScaling);
 
-            double xPower = xDistance * powerScaling;
-            double yPower = yDistance * powerScaling;
+            double xPower = (xDistance*powerScaling);
+            double yPower = (yDistance*powerScaling);
 
             telemetry.addData ("x Power", xPower);
             telemetry.addData ("y Power", yPower);
 
+            double rotX = xPower * Math.cos(-robotTheta) - yPower * Math.sin(-robotTheta);
+            double rotY = xPower * Math.sin(-robotTheta) + yPower * Math.cos(-robotTheta);
+
+            double denominator = Math.max(Math.abs(yPower) + Math.abs(xPower) + Math.abs(thetaDistance), 1);
+            double FLDrivePower = (rotY - rotX + thetaDistance) / denominator;
+            double BLDrivePower = (rotY + rotX + thetaDistance) / denominator;
+            double FRDrivePower = (rotY + rotX - thetaDistance) / denominator;
+            double BRDrivePower = (rotY - rotX - thetaDistance) / denominator;
+
+            telemetry.addData("Motor 1", FLDrivePower);
+            telemetry.addData("Motor 2", BLDrivePower);
+            telemetry.addData("Motor 3", FRDrivePower);
+            telemetry.addData("Motor 4", BRDrivePower);
+
+            FLDrive.setPower(FLDrivePower);
+            BLDrive.setPower(BLDrivePower);
+            FRDrive.setPower(FRDrivePower);
+            BRDrive.setPower(BRDrivePower);
+
+            if (posTolerance > RobotDistance){
+                break;
+            }
         }
     }
 }

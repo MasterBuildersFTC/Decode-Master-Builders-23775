@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -27,8 +28,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     private DcMotor BRDrive;
     private DcMotorEx TopOuttake;
     private DcMotorEx BottomOuttake;
-    private DcMotor FrontIntake;
-    private DcMotor BackIntake;
+    private DcMotor Intake;
+    private DcMotor LiftSystem;
     private Servo IndexRamp;
     private CRServo IndexRevolver;
     private Limelight3A Limelight;
@@ -40,15 +41,19 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     int RetractionTime = 0;
     double OuttakeVelocity=0;
     double IndexSpeed;
-
+    private ColorSensor IndexCS;
     boolean formerA = false;
     boolean formerB = false;
     boolean formerX = false;
     boolean formerY = false;
-
-
+    boolean FormerOrbDetection = false;
+    double IndexRampAngle = .82;
+    boolean Sequencing = false;
+    double IndexTiming = -1000;
     @Override
     public void runOpMode() {
+        IndexCS = hardwareMap.get(ColorSensor.class, "IndexCS");
+
         Limelight = hardwareMap.get(Limelight3A.class, "Limelight");
 
         Limelight.pipelineSwitch(0);
@@ -91,10 +96,10 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         TopOuttake.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         BottomOuttake.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
-        FrontIntake = hardwareMap.get(DcMotor.class, "FrontIntake");
-        BackIntake = hardwareMap.get(DcMotor.class, "BackIntake");
-        FrontIntake.setDirection(DcMotor.Direction.REVERSE);
-        BackIntake.setDirection(DcMotor.Direction.REVERSE);
+        Intake = hardwareMap.get(DcMotor.class, "Intake");
+        LiftSystem = hardwareMap.get(DcMotor.class, "LiftSystem");
+        //Intake.setDirection(DcMotor.Direction.REVERSE);
+        LiftSystem.setDirection(DcMotor.Direction.REVERSE);
 
         IndexRamp = hardwareMap.get(Servo.class, "IndexRamp");
 
@@ -119,6 +124,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
             Index_Controls();
             Launch_System();
             Intake_System();
+            Lift_Controls();
             telemetry.update();
         }
     }
@@ -129,8 +135,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         if (gamepad1.left_bumper)
             IntakePower = .54;
 
-        FrontIntake.setPower(IntakePower);
-        BackIntake.setPower(IntakePower);
+        Intake.setPower(IntakePower);
         
         telemetry.addData("Intake Power", IntakePower);
     }
@@ -167,29 +172,47 @@ public class Field_Centric_TeleOp extends LinearOpMode {
 
         
     }
-    private void Index_Controls() {
-        Index_Ramp();
-        IndexRevolver();
-    }
-    private void IndexRevolver() {
+    private void Lift_Controls() {
 
-        IndexSpeed = 0;
-       if (gamepad2.left_bumper) {
-           IndexSpeed = .7;
+       while (gamepad1.left_trigger > 0 && gamepad2.left_trigger > 0 && gamepad1.right_trigger > 0 && gamepad2.right_trigger > 0) {
+           LiftSystem.setPower(-1);
        }
-
-        IndexRevolver.setPower(IndexSpeed);
-
-        telemetry.addData("IndexRevolver Position: ", IndexRevolverPosition);
     }
-    private void Index_Ramp() {
+    private void Index_Controls() {
         double ElapsedTime = runTime.seconds();
 
-        double Indexpositition = (gamepad2.right_trigger/5)+.8;
-        IndexRamp.setPosition(Indexpositition);
+        boolean OrbDetected = IndexCS.blue() > 1000;
 
-        double IndexRampAngle = IndexRamp.getPosition();
+        if (gamepad2.right_trigger != 0 && OrbDetected && !FormerOrbDetection) {
+            IndexRampAngle = .95;
+            IndexSpeed = .7;
+            Sequencing = true;
+            IndexTiming = ElapsedTime;
+        }
+        if (Sequencing && IndexTiming+1 <ElapsedTime) {
+            IndexSpeed = 0;
+        }
+        if (Sequencing && IndexTiming+.16 <ElapsedTime) {
+            IndexRampAngle = 1;
+        }
+        if (IndexTiming+2.4 <ElapsedTime) {
+            IndexSpeed = 0;
+            IndexRampAngle = .82;
+            Sequencing = false;
+        }
+
+        if (gamepad2.right_bumper && !Sequencing){
+            IndexSpeed = 1;
+        }
+        if (gamepad2.left_bumper && !Sequencing) {
+            IndexSpeed = -1;
+        }
+
+        IndexRevolver.setPower(IndexSpeed);
+        IndexRamp.setPosition(IndexRampAngle);
+
         telemetry.addData("Scissor Lift Angle: ", IndexRampAngle);
+        FormerOrbDetection = OrbDetected;
     }
     private void Drive_Controls() {
 
