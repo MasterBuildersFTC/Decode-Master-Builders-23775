@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -27,20 +28,25 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     private DcMotor BRDrive;
     private DcMotorEx TopOuttake;
     private DcMotorEx BottomOuttake;
-    private DcMotor FrontIntake;
-    private DcMotor BackIntake;
+    private DcMotor Intake;
+    private DcMotor LiftSystem;
     private Servo IndexRamp;
     private CRServo IndexRevolver;
     private Limelight3A Limelight;
     private TouchSensor HallEffectSwitch;
-
+    private ColorSensor IndexCS;
     double IndexRevolverPosition = 0;
     boolean FormerIndex = false;
     double targetHeading = 0.0; // For heading lock
     int RetractionTime = 0;
     double OuttakeVelocity=0;
     double IndexSpeed;
-
+    double IndexPosition = .8;
+    int IndexTiming = -12;
+    boolean BallPrevDetected = false;
+    boolean Sequencing = false;
+    boolean IntakeToIndex = false;
+    boolean FormerHallEffect = false;
     boolean formerA = false;
     boolean formerB = false;
     boolean formerX = false;
@@ -59,6 +65,7 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         Odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
 
         HallEffectSwitch = hardwareMap.get(TouchSensor.class, "Hall Effect Switch");
+        IndexCS = hardwareMap.get(ColorSensor.class, "IndexCS");
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -91,10 +98,10 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         TopOuttake.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         BottomOuttake.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
-        FrontIntake = hardwareMap.get(DcMotor.class, "FrontIntake");
-        BackIntake = hardwareMap.get(DcMotor.class, "BackIntake");
-        FrontIntake.setDirection(DcMotor.Direction.REVERSE);
-        BackIntake.setDirection(DcMotor.Direction.REVERSE);
+        Intake = hardwareMap.get(DcMotor.class, "Intake");
+
+        LiftSystem = hardwareMap.get(DcMotor.class, "LiftSystem");
+        LiftSystem.setDirection(DcMotor.Direction.FORWARD);
 
         IndexRamp = hardwareMap.get(Servo.class, "IndexRamp");
 
@@ -119,18 +126,28 @@ public class Field_Centric_TeleOp extends LinearOpMode {
             Index_Controls();
             Launch_System();
             Intake_System();
+            Lift_System();
+
             telemetry.update();
         }
     }
     //General OpMode Specific Functions
+    private void Lift_System(){
+        if (gamepad1.left_trigger > 0.5 && gamepad2.left_trigger > 0.5 && gamepad1.right_trigger > 0.5 && gamepad2.right_trigger > 0.5){
+            LiftSystem.setPower(1);
+        }
+        telemetry.addData("Lift Control 1",gamepad1.left_trigger > .5);
+        telemetry.addData("Lift Control 2",gamepad1.right_trigger > .5);
+        telemetry.addData("Lift Control 3",gamepad2.left_trigger > .5);
+        telemetry.addData("Lift Control 4",gamepad2.right_trigger > .5);
+    }
     private void Intake_System() {
         double IntakePower = gamepad1.left_trigger;
 
         if (gamepad1.left_bumper)
             IntakePower = .54;
 
-        FrontIntake.setPower(IntakePower);
-        BackIntake.setPower(IntakePower);
+        Intake.setPower(IntakePower);
         
         telemetry.addData("Intake Power", IntakePower);
     }
@@ -164,32 +181,66 @@ public class Field_Centric_TeleOp extends LinearOpMode {
         telemetry.addData("OuttakeVelocity", OuttakeVelocity);
         telemetry.addData("Distance from back of goal:", goalDistance);
         telemetry.addData("angle difference:", goalAngleDifference);
-
-        
     }
+
+
     private void Index_Controls() {
-        Index_Ramp();
-        IndexRevolver();
-    }
-    private void IndexRevolver() {
+        double ElapsedTime = runTime.seconds();
+        boolean BallDetected = IndexCS.blue() > 1000;
 
-        IndexSpeed = 0;
-       if (gamepad2.left_bumper) {
-           IndexSpeed = .7;
-       }
+        //stage 1
+        if (gamepad2.right_trigger!=0 && BallDetected && !BallPrevDetected) {
+            IndexPosition = .95;
+            IndexSpeed = 1;
+            IndexTiming = (int) ElapsedTime;
+            //Sequencing = true;
+        }
+        //stage 2
+        if ((IndexTiming+.8) < ElapsedTime){
+            IndexSpeed = 0;
+            IndexPosition = 1;
+        }
+        //stage 3
+        if ((IndexTiming+1.1) < ElapsedTime){
+            IndexSpeed = 1;
+        }
+        //stage 4
+        if ((IndexTiming+1.6) < ElapsedTime){
+            IndexPosition = .8;
+            IndexSpeed = 0;
+            Sequencing = false;
+        }
+
+        //Intaking
+
+        if (gamepad2.right_bumper) {
+            //IndexSpeed = .35;
+        }
+
+        FormerHallEffect = HallEffectSwitch.isPressed();
+
+        //Manual
+        if (gamepad2.left_bumper && !Sequencing) {
+            IndexSpeed = .6;
+        }
+        if (gamepad2.right_bumper && !Sequencing) {
+            IndexSpeed = -.6;
+        }
 
         IndexRevolver.setPower(IndexSpeed);
-
         telemetry.addData("IndexRevolver Position: ", IndexRevolverPosition);
-    }
-    private void Index_Ramp() {
-        double ElapsedTime = runTime.seconds();
 
-        double Indexpositition = (gamepad2.right_trigger/5)+.8;
-        IndexRamp.setPosition(Indexpositition);
+        BallPrevDetected = BallDetected;
+        IndexRamp.setPosition(IndexPosition);
+        IndexRevolver.setPower(IndexSpeed);
 
         double IndexRampAngle = IndexRamp.getPosition();
-        telemetry.addData("Scissor Lift Angle: ", IndexRampAngle);
+        telemetry.addData("Ramp Angle: ", IndexRampAngle);
+
+        telemetry.addData("Hall Effect", HallEffectSwitch.isPressed());
+        telemetry.addData("Red", IndexCS.red());
+        telemetry.addData("Blue", IndexCS.blue());
+        telemetry.addData("Green", IndexCS.green());
     }
     private void Drive_Controls() {
 
