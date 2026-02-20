@@ -134,8 +134,8 @@ public class Field_Centric_TeleOp extends LinearOpMode {
     //General OpMode Specific Functions
     private void Lift_System(){
         double LiftPower =0;
-        if (gamepad1.left_trigger > 0.5 && gamepad2.left_trigger > 0.5 && gamepad1.right_trigger > 0.5 && gamepad2.right_trigger > 0.5){
-            LiftPower =1;
+        if (gamepad1.left_trigger > 0.5 && gamepad1.right_trigger > 0.5){
+            LiftPower = -gamepad2.right_stick_y;
         }
         LiftSystem.setPower(LiftPower);
         telemetry.addData("Lift Control 1",gamepad1.left_trigger > .5);
@@ -148,6 +148,9 @@ public class Field_Centric_TeleOp extends LinearOpMode {
 
         if (gamepad1.left_bumper)
             IntakePower = .54;
+
+        if (gamepad1.right_trigger >= .5)
+            IntakePower = 0;
 
         Intake.setPower(IntakePower);
         
