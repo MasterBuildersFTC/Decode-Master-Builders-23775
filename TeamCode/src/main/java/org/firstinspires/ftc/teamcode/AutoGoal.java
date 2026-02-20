@@ -9,8 +9,8 @@ import com.arcrobotics.ftclib.controller.PIDController;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
-@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Autonomous", preselectTeleOp = "FCDrivingITD")
-public class Autonomous extends LinearOpMode {
+@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "AutoGoal", preselectTeleOp = "FCDrivingITD")
+public class AutoGoal extends LinearOpMode {
 
     private static final double kPx = 0.057, kIx = 0.0, kDx = 0.007;
     private static final double kPy = 0.056, kIy = 0.0, kDy = 0.0059;
@@ -73,7 +73,7 @@ public class Autonomous extends LinearOpMode {
 
         waitForStart();
 
-        Drive_Controls(570,0,0,200,5,300000);
+        Drive_Controls(0,200,0,50,5,300000);
 
         //Drive_Controls(300,0,0,50,5,300000);
 
