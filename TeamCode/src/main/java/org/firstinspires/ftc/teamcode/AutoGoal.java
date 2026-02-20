@@ -75,8 +75,6 @@ public class AutoGoal extends LinearOpMode {
 
         Drive_Controls(0,200,0,50,5,300000);
 
-        //Drive_Controls(300,0,0,50,5,300000);
-
     }
 
     private void Drive_Controls(double targetX, double targetY, double targetAngle, double posTolerance, double angleTolerance, long timeoutMillis) {
